@@ -8,8 +8,6 @@
 
 LogiTrack Pro es una solución web integral diseñada para la gestión eficiente de inventarios, recepción de lotes y control logístico. Desarrollada con tecnologías de vanguardia (Next.js App Router, Tailwind CSS, Prisma y SQLite/Supabase), esta plataforma ofrece una interfaz unificada, segura y adaptable para monitorizar las operaciones diarias de bodegas y centros de distribución.
 
-![Dashboard Preview](docs/dashboard.png) *La interfaz principal.*
-
 ## ✨ Características Principales
 
 - **Dashboard Analítico**: Resumen en tiempo real del estado de ocupación de estantes, uso de capacidad y entradas/salidas recientes.
@@ -17,7 +15,7 @@ LogiTrack Pro es una solución web integral diseñada para la gestión eficiente
 - **Recepción de Lotes**: Formulario ágil para la asignación de lotes entrantes a slots pre-configurados del sistema, sugiriendo ubicaciones mediante algoritmos lógicos (Mockup actual).
 - **Control de Salidas a Producción**: Monitorización continua de requerimientos y despliegue del inventario interno hacia líneas de producción o clientes.
 - **Seguridad Rigurosa**: Autenticación asimétrica y validación estricta de cookies basada en **JWT** y **Bcryptjs**, complementado con Roles de Acceso (RBAC).
-- **Diseño Mobile-First**: Maquetación construida sobre principios *100dvh* garantizando un despliegue sin fallas tanto en pantallas móviles como de escritorio.
+- **Diseño Mobile-First**: Maquetación construida sobre principios _100dvh_ garantizando un despliegue sin fallas tanto en pantallas móviles como de escritorio.
 
 ## 🚀 Arquitectura Tecnológica
 
@@ -31,6 +29,7 @@ LogiTrack Pro es una solución web integral diseñada para la gestión eficiente
 ## 📋 Requisitos Previos
 
 Asegúrate de tener instalados:
+
 - **Node.js**: `v18.0` o superior.
 - **NPM**: `v9.0` o superior (Opcional pnpm / yarn).
 - **Git** (Para clonar y gestionar versiones).
@@ -38,30 +37,35 @@ Asegúrate de tener instalados:
 ## 🛠️ Instalación y Puesta en Marcha (Local)
 
 1. **Clona el Repositorio**
+
    ```bash
-   git clone https://github.com/TU-USUARIO/proyecto-gestion-inventarios.git
+   git clone https://github.com/dev-juantag/proyecto-gestion-inventarios.git
    cd proyecto-gestion-inventarios
    ```
 
 2. **Instala las dependencias principales**
+
    ```bash
    npm install
    ```
 
 3. **Configura el Entorno Local (.env)**
    El archivo `.env` por defecto requiere tu cadena de conexión a la base de datos (SQLite mientras desarrollas):
+
    ```ini
    DATABASE_URL="file:dev.db"
    JWT_SECRET="alguna-clave-secreta-súper-segura-en-producción"
    ```
 
 4. **Sincroniza y Genera el Cliente Prisma**
+
    ```bash
    npx prisma generate
    npx prisma db push
    ```
 
 5. **Aplica los Seeds Obligatorios** (Crea al usuario Root Administrador)
+
    ```bash
    npx prisma db seed
    ```
@@ -79,11 +83,12 @@ El script de inicialización de la Base de Datos genera los roles de la aplicaci
 - **Usuario**: `juantaguado05@gmail.com`
 - **Contraseña**: `admin123`
 
-*(Nota: Evita utilizar estas claves genéricas en despliegues a producción y cámbialas en futuros entornos).*
+_(Nota: Evita utilizar estas claves genéricas en despliegues a producción y cámbialas en futuros entornos)._
 
 ## 📂 Directorio del Proyecto
 
 La aplicación se estructura principalmente en:
+
 - `/src/app/` - Rutas principales de Next.js (`/login`, `/dashboard`).
 - `/src/app/dashboard/_components/` - Fragmentos reusables protegidos (Sidebar y Topbar).
 - `/src/app/api/` - Controladores y Endpoints de lógica Backend (`/auth/login`).
@@ -92,6 +97,6 @@ La aplicación se estructura principalmente en:
 
 ## 🤝 Próximos Pasos & Mantenimiento
 
-Este proyecto es iterativo. Durante las fases iniciales se trabajará configurando la **Lógica de Base de Datos Subyacente** conectando las distintas vistas (Mockups visuales actuales) con inserciones y cálculos reales mediante la base de datos local pre-integración final con la infraestructura de *Supabase*.
+Este proyecto es iterativo. Durante las fases iniciales se trabajará configurando la **Lógica de Base de Datos Subyacente** conectando las distintas vistas (Mockups visuales actuales) con inserciones y cálculos reales mediante la base de datos local pre-integración final con la infraestructura de _Supabase_.
 
 Cualquier duda en el uso, repasar la documentación local o abrir un issue en el tracking.

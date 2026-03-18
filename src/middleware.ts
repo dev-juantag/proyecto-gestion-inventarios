@@ -30,9 +30,19 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
 
-    // Role validation
-    if (payload && request.nextUrl.pathname.startsWith('/dashboard/control')) {
-      // Ejemplo: Role protection logic could go here based on payload.role parameter
+    // Role Validation (RBAC)
+    if (payload) {
+      const role = payload.role as string;
+      const path = request.nextUrl.pathname;
+
+      // El Operador tiene funcionalidad restringida.
+      if (role === 'Operador') {
+        const restrictedPaths = ['/dashboard/salida', '/dashboard/admin', '/dashboard/settings'];
+        if (restrictedPaths.some(rp => path.startsWith(rp))) {
+          // Redirigir al inicio del dashboard sin acceso
+          return NextResponse.redirect(new URL('/dashboard', request.url));
+        }
+      }
     }
   }
 

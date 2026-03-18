@@ -1,122 +1,320 @@
 "use client";
 
-import { ScanBarcode, PackageSearch, Save, Info, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Package, Truck, ArrowRightLeft, Search, CheckCircle2, AlertCircle, Maximize2 } from "lucide-react";
 
-export default function RecepcionLotes() {
+export default function GestionLotesPage() {
+  const [activeTab, setActiveTab] = useState("recepcion");
+  
+  // -- Recepcion State --
+  const [formData, setFormData] = useState({
+    codigoPaquete: "",
+    lotId: "",
+    productionDate: "",
+    productType: "Motos Semi-Ensambladas (CKD)",
+    quantity: 1,
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [statusMap, setStatusMap] = useState<any>(null);
+
+  // -- Inventario State --
+  const [inventario, setInventario] = useState<any[]>([]);
+  const [loadingInv, setLoadingInv] = useState(false);
+
+  // Cargar Inventario cuando se cambia a la pestaña
+  useEffect(() => {
+    if (activeTab === "inventario") {
+      fetchInventario();
+    }
+  }, [activeTab]);
+
+  const fetchInventario = async () => {
+    setLoadingInv(true);
+    try {
+      const res = await fetch("/api/dashboard/stats");
+      const data = await res.json();
+      if(data.success && data.racks) {
+         const allEstibas: any[] = [];
+         data.racks.forEach((r: any) => {
+           r.canales.forEach((c: any) => {
+             c.ubicaciones.forEach((u: any) => {
+               if(!u.vacio) {
+                 allEstibas.push({
+                   codigoBarras: u.estiba,
+                   loteId: u.lote,
+                   paquete: u.paquete,
+                   vence: u.vence,
+                   rack: r.rack,
+                   nivel: c.nivel,
+                   profundidad: u.profundidad
+                 });
+               }
+             });
+           });
+         });
+         setInventario(allEstibas);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingInv(false);
+    }
+  };
+
+  const handleAssign = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setStatusMap(null);
+
+    try {
+      const res = await fetch("/api/inbound/assign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          codigoPaquete: formData.codigoPaquete,
+          lotId: formData.lotId,
+          productionDate: formData.productionDate,
+          productType: formData.productType,
+          quantity: formData.quantity
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setStatusMap({ type: "success", data });
+        setFormData({ ...formData, lotId: "", codigoPaquete: "" }); // reset partially
+      } else {
+        setStatusMap({ type: "error", message: data.error || "Error al asignar ubicacion." });
+      }
+    } catch (error) {
+       setStatusMap({ type: "error", message: "Error de red al conectar con el servidor." });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">
-            Recepción de Lotes
-          </h1>
-          <p className="font-medium text-slate-500 mt-1">
-            Registrar pallets entrantes y asignarlos a ubicaciones.
-          </p>
-        </div>
-        <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform">
-          <ScanBarcode size={20} />
-          <span>Escanear Código</span>
-        </button>
+    <div className="space-y-6 animate-in fade-in duration-300">
+      <div>
+        <h1 className="text-3xl font-black tracking-tight text-slate-900">Gestión de Lotes y Estibas</h1>
+        <p className="font-medium text-slate-500">Módulo centralizado para Recepción, Inventario y Salidas a Producción.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Formulario Area */}
-        <div className="lg:col-span-2 space-y-6">
-           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
-             <form className="space-y-6">
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                 <div className="space-y-2">
-                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">ID del Lote</label>
-                   <input type="text" placeholder="LOT-2023-XXXX" className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 dark:bg-slate-800 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none font-mono uppercase" />
-                 </div>
-                 <div className="space-y-2">
-                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Fecha de Ingreso</label>
-                   <input type="date" className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 dark:bg-slate-800 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none" />
-                 </div>
-                 <div className="space-y-2">
-                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Tipo de Producto</label>
-                   <select className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 dark:bg-slate-800 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none">
-                     <option>Electrónicos</option>
-                     <option>Abarrotes - General</option>
-                     <option>Congelados</option>
-                   </select>
-                 </div>
-                 <div className="space-y-2">
-                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Cantidad</label>
-                   <div className="flex gap-2">
-                     <input type="number" placeholder="0" className="flex-1 bg-slate-50 border-slate-200 rounded-xl px-4 py-3 dark:bg-slate-800 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none" />
-                     <select className="w-24 bg-slate-50 border-slate-200 rounded-xl px-2 py-3 dark:bg-slate-800 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none text-sm font-bold">
-                       <option>PLT</option>
-                       <option>BOX</option>
-                       <option>UNT</option>
-                     </select>
+      <div className="border-b border-slate-200">
+        <nav className="flex space-x-8" aria-label="Tabs">
+          <button
+            onClick={() => setActiveTab("recepcion")}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-bold text-sm transition-colors ${
+              activeTab === "recepcion"
+                ? "border-primary text-primary"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+            }`}
+          >
+            <span className="flex items-center gap-2"><Package size={18} />Ingreso de Estibas</span>
+          </button>
+          
+          <button
+            onClick={() => setActiveTab("inventario")}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-bold text-sm transition-colors ${
+              activeTab === "inventario"
+                ? "border-primary text-primary"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+            }`}
+          >
+            <span className="flex items-center gap-2"><Search size={18} />Inventario Detallado</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("produccion")}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-bold text-sm transition-colors ${
+              activeTab === "produccion"
+                ? "border-primary text-primary"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+            }`}
+          >
+            <span className="flex items-center gap-2"><Truck size={18} />Salida a Producción</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("mover")}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-bold text-sm transition-colors ${
+              activeTab === "mover"
+                ? "border-primary text-primary"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+            }`}
+          >
+            <span className="flex items-center gap-2"><ArrowRightLeft size={18} />Mover / Reubicar</span>
+          </button>
+        </nav>
+      </div>
+
+      {/* --- PESTAÑA RECEPCION --- */}
+      {activeTab === "recepcion" && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+           <div className="lg:col-span-2">
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                 <h2 className="text-xl font-bold text-slate-900 mb-6">Registrar Nueva Estiba / Pallet</h2>
+                 <form onSubmit={handleAssign} className="space-y-6">
+                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                     <div className="space-y-2">
+                       <label className="text-sm font-bold text-slate-700">Container / Embarque ID</label>
+                       <input type="text" required value={formData.codigoPaquete} onChange={e => setFormData({...formData, codigoPaquete: e.target.value.toUpperCase()})} placeholder="CONT-2026-001" className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none font-mono uppercase" />
+                     </div>
+                     <div className="space-y-2">
+                       <label className="text-sm font-bold text-slate-700">Lote de Repuestos (ID)</label>
+                       <input type="text" required value={formData.lotId} onChange={e => setFormData({...formData, lotId: e.target.value.toUpperCase()})} placeholder="LOT-MOTO-XXXX" className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none font-mono uppercase" />
+                     </div>
+                     <div className="space-y-2">
+                       <label className="text-sm font-bold text-slate-700">Fecha Producción/Vence</label>
+                       <input type="date" required value={formData.productionDate} onChange={e => setFormData({...formData, productionDate: e.target.value})} className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none" />
+                     </div>
                    </div>
-                 </div>
-               </div>
 
-               <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Estado Inicial</label>
-                  <div className="grid grid-cols-3 gap-3">
-                    <button type="button" className="flex items-center justify-center gap-2 py-3 bg-emerald-500/10 text-emerald-600 border border-emerald-500/30 rounded-xl font-bold hover:bg-emerald-500/20 transition-colors">
-                      <CheckCircle2 size={16} /> QC Passed
-                    </button>
-                    <button type="button" className="flex items-center justify-center gap-2 py-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-xl font-bold hover:bg-slate-100 transition-colors">
-                      <Clock size={16} /> Pendiente
-                    </button>
-                    <button type="button" className="flex items-center justify-center gap-2 py-3 bg-amber-500/5 text-amber-600 border border-amber-500/30 rounded-xl font-bold hover:bg-amber-500/20 transition-colors">
-                      <AlertTriangle size={16} /> En Espera
-                    </button>
-                  </div>
-               </div>
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                     <div className="space-y-2">
+                       <label className="text-sm font-bold text-slate-700">Sector de Mercancía</label>
+                       <select value={formData.productType} onChange={e => setFormData({...formData, productType: e.target.value})} className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none">
+                         <option>Motos Semi-Ensambladas (CKD)</option>
+                         <option>Repuestos Motor y Chasis</option>
+                         <option>Llantas y Plásticos</option>
+                         <option>Aceites y Químicos</option>
+                       </select>
+                     </div>
+                     <div className="space-y-2">
+                       <label className="text-sm font-bold text-slate-700">Cantidad (Estibas Físicas)</label>
+                       <input type="number" min="1" max="10" required value={formData.quantity} onChange={e => setFormData({...formData, quantity: parseInt(e.target.value)})} className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none" />
+                     </div>
+                   </div>
 
-               <div className="pt-4 flex gap-4">
-                 <button type="button" className="flex-1 flex justify-center items-center gap-2 bg-primary text-white rounded-xl py-4 font-bold hover:opacity-90 transition-opacity shadow-lg shadow-primary/20">
-                   <Save size={20} />
-                   Asignar a Estante
-                 </button>
-                 <button type="button" className="px-8 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition">
-                    Limpiar
-                 </button>
-               </div>
-             </form>
+                   <button disabled={isSubmitting} type="submit" className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 transition-all disabled:opacity-50">
+                     {isSubmitting ? "Trazando Ruta Logística..." : "Ubicar Estiba en Rack LIFO"}
+                   </button>
+                 </form>
+              </div>
+           </div>
+
+           <div className="lg:col-span-1">
+              <div className={`rounded-2xl border p-6 h-full min-h-[400px] flex flex-col ${statusMap?.type === 'success' ? 'bg-emerald-50 border-emerald-200' : statusMap?.type === 'error' ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-dashed border-slate-300'}`}>
+                 {statusMap?.type === 'success' ? (
+                   <div className="flex-1 flex flex-col items-center justify-center text-center animate-in zoom-in-50 duration-300">
+                     <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4 shadow-xl shadow-emerald-500/20">
+                       <CheckCircle2 size={32} />
+                     </div>
+                     <h3 className="text-2xl font-black text-emerald-950 mb-2">¡Asignación Exitosa!</h3>
+                     <p className="text-emerald-700 font-medium text-sm mb-6">Diríjase a la ubicación abajo descrita.</p>
+                     
+                     <div className="w-full bg-white rounded-xl border border-emerald-100 p-4 shadow-sm relative overflow-hidden">
+                       <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Posición Drive-in Asignada</p>
+                       <div className="flex justify-between items-baseline mb-4">
+                         <span className="text-3xl font-black text-slate-800">RACK {statusMap.data.recomendacion.rack}</span>
+                         <span className="text-lg font-bold text-slate-600">Nivel {statusMap.data.recomendacion.nivel}</span>
+                       </div>
+                       <div className="flex justify-between items-center text-sm font-bold border-t border-slate-100 pt-3">
+                         <span className="text-slate-500">Profundidad (Fondo):</span>
+                         <span className="text-emerald-600 bg-emerald-50 px-2 py-1 rounded">Posición {statusMap.data.recomendacion.profundidad}/10</span>
+                       </div>
+                     </div>
+                     
+                     <div className="mt-6 p-3 bg-white/60 border border-emerald-100 rounded-xl w-full">
+                       <p className="text-[10px] font-bold text-slate-400 uppercase text-left mb-1">Código de Barra Generado</p>
+                       <p className="font-mono font-bold text-slate-800 text-lg tracking-wider">{statusMap.data.recomendacion.estiba}</p>
+                     </div>
+                   </div>
+                 ) : statusMap?.type === 'error' ? (
+                   <div className="flex-1 flex flex-col items-center justify-center text-center">
+                     <AlertCircle size={48} className="text-red-500 mb-4" />
+                     <h3 className="text-xl font-black text-red-950 mb-2">Error de Ubicación</h3>
+                     <p className="text-red-700 font-medium text-sm">{statusMap.message}</p>
+                   </div>
+                 ) : (
+                   <div className="flex-1 flex flex-col items-center justify-center text-center opacity-50">
+                     <Maximize2 size={48} className="text-slate-400 mb-4" />
+                     <h3 className="text-lg font-bold text-slate-900 mb-2">Esperando Escaneo</h3>
+                     <p className="text-slate-500 text-sm max-w-[200px]">Complete el formulario para que el algoritmo asigne la ubicación óptima.</p>
+                   </div>
+                 )}
+              </div>
            </div>
         </div>
+      )}
 
-        {/* Sidebar Info */}
-        <div className="space-y-6">
-           <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6">
-             <h3 className="font-bold text-primary flex items-center gap-2 mb-4">
-               <Info size={18} /> Recomendación de Slot
-             </h3>
-             <div className="bg-white dark:bg-slate-900 border border-primary/10 rounded-xl p-4 mb-4">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Zona B • Estante 12</p>
-                <p className="text-2xl font-black text-slate-800 dark:text-white mb-3">SLOT-B12-A04</p>
-                <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                   <div className="h-full bg-primary w-[65%]"></div>
-                </div>
-                <p className="text-[10px] mt-2 text-slate-500">65% Ocupación - Óptimo para electrónicos</p>
-             </div>
+      {/* --- PESTAÑA INVENTARIO --- */}
+      {activeTab === "inventario" && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+           <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+              <h2 className="font-bold text-slate-800">Inventario Físico de Estibas</h2>
+              <div className="bg-white border rounded-lg px-3 py-1.5 flex items-center gap-2">
+                 <Search size={16} className="text-slate-400" />
+                 <input type="text" placeholder="Buscar lote o contenedor..." className="text-sm outline-none w-48 font-medium" />
+              </div>
            </div>
-
-           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
-             <h3 className="font-bold text-sm mb-4">Entradas Recientes</h3>
-             <div className="space-y-4">
-               <div className="flex items-center gap-3">
-                 <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                   <PackageSearch size={16} />
-                 </div>
-                 <div className="flex-1">
-                   <p className="text-xs font-bold">LOT-A982</p>
-                   <p className="text-[10px] text-slate-500">Hace 2 mins</p>
-                 </div>
-                 <span className="text-[10px] font-bold px-2 py-1 bg-emerald-500/10 text-emerald-500 rounded uppercase">Guardado</span>
-               </div>
-             </div>
+           
+           <div className="p-0">
+             <table className="w-full text-left text-sm">
+               <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
+                 <tr>
+                   <th className="px-6 py-4">Físico / Barcode</th>
+                   <th className="px-6 py-4">Lote ID</th>
+                   <th className="px-6 py-4">Embarque</th>
+                   <th className="px-6 py-4">Ubicación Fija</th>
+                   <th className="px-6 py-4">Vencimiento/Producción</th>
+                 </tr>
+               </thead>
+               <tbody className="divide-y divide-slate-100">
+                 {loadingInv ? (
+                   <tr><td colSpan={5} className="text-center py-10 text-slate-400 font-bold">Cargando inventario...</td></tr>
+                 ) : inventario.length === 0 ? (
+                   <tr><td colSpan={5} className="text-center py-10 text-slate-500 font-medium">No hay estibas almacenadas en los racks actualmente.</td></tr>
+                 ) : (
+                   inventario.map((inv, idx) => (
+                     <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                       <td className="px-6 py-4 font-mono font-bold text-slate-800">{inv.codigoBarras}</td>
+                       <td className="px-6 py-4 font-bold text-primary">{inv.loteId}</td>
+                       <td className="px-6 py-4 text-slate-600 font-medium">{inv.paquete}</td>
+                       <td className="px-6 py-4">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 font-bold text-xs border border-slate-200">
+                             Rack {inv.rack} <span className="text-slate-300">|</span> Nv {inv.nivel} <span className="text-slate-300">|</span> Prof {inv.profundidad}
+                          </span>
+                       </td>
+                       <td className="px-6 py-4 text-slate-500 font-medium">{new Date(inv.vence).toLocaleDateString()}</td>
+                     </tr>
+                   ))
+                 )}
+               </tbody>
+             </table>
            </div>
         </div>
-      </div>
+      )}
+
+      {/* --- PESTAÑA PRODUCCION --- */}
+      {activeTab === "produccion" && (
+         <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center shadow-sm">
+            <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+               <Truck size={32} />
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 mb-2">Despacho hacia Ensamblaje</h2>
+            <p className="text-slate-500 max-w-lg mx-auto mb-6">Esta sección sugiere automáticamente la estiba de componentes más antigua acorde al Algoritmo FEFO, destrabando la estrategia LIFO del Drive-in.</p>
+            <button className="bg-slate-900 text-white font-bold py-3 px-8 rounded-xl hover:bg-slate-800 transition-colors">
+               Iniciar Secuencia de Extracción
+            </button>
+         </div>
+      )}
+
+      {/* --- PESTAÑA MOVER --- */}
+      {activeTab === "mover" && (
+         <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center shadow-sm">
+            <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
+               <ArrowRightLeft size={32} />
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 mb-2">Reubicación Manual</h2>
+            <p className="text-slate-500 max-w-lg mx-auto mb-6">Mueve lotes que están siendo bloqueados físicamente o consolida espacios parciales dentro del almacén.</p>
+            <button className="bg-white border-2 border-slate-200 text-slate-700 font-bold py-3 px-8 rounded-xl hover:border-slate-300 transition-colors">
+               Abrir Escáner de Reubicación
+            </button>
+         </div>
+      )}
+
     </div>
   );
 }

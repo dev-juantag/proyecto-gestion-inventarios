@@ -22,23 +22,72 @@ model User {
   apellidos  String
   lastLogin  DateTime @default(now())
   isActive   Boolean  @default(true)
-  roleId     Int
-  role       Role     @relation(fields: [roleId], references: [id])
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  roleId               Int
+  role                 Role     @relation(fields: [roleId], references: [id])
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model Paquete {
+  id          Int      @id @default(autoincrement())
+  codigo      String   @unique // e.g. PAQ-2026-001
+  descripcion String?
+  lotes       Lote[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Lote {
-  id             Int      @id @default(autoincrement())
-  lotId          String   @unique // e.g. LOT-2023-A982
-  productionDate DateTime
-  productType    String   // Electronics, Dry Goods, etc.
-  quantity       Int
-  quantityType   String   // PLT, BOX, UNT
-  status         String   // QC Passed, Pending, Hold, Stored
-  location       String?  // Optional initially, e.g. SLOT-B12-A04
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                 Int      @id @default(autoincrement())
+  lotId              String   @unique // e.g. LOT-2023-A982
+  paqueteId          Int
+  paquete            Paquete  @relation(fields: [paqueteId], references: [id])
+  productionDate     DateTime // Clave para FEFO
+  receptionDate      DateTime @default(now())
+  requiresInspection Boolean  @default(false)
+  productType        String   // Electronics, Dry Goods, etc.
+  quantity           Int
+  quantityType       String   // PLT, BOX, UNT
+  status             String   // PENDING_INSPECTION, INSPECTED, STORED, DISPATCHED
+  estibas            Estiba[]
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model Estiba {
+  id           Int      @id @default(autoincrement())
+  codigoBarras String   @unique // e.g. EST-XYZ987
+  loteId       Int
+  lote         Lote     @relation(fields: [loteId], references: [id], onDelete: Cascade)
+  status       String   @default("IN_TRANSIT") // IN_TRANSIT, IN_INSPECTION, STORED, DISPATCHED
+  ubicacion    Ubicacion?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// Representa un túnel (canal) Drive-in
+model Canal {
+  id           Int         @id @default(autoincrement())
+  rack         String      // Identificador del Rack/Estantería (ej: A, B, C)
+  nivel        Int         // 1-7
+  maxCapacidad Int         @default(10) // 10 posiciones de profundidad máxima
+  isActive     Boolean     @default(true)
+  ubicaciones  Ubicacion[]
+  
+  @@unique([rack, nivel]) // Cada canal es único en esa matriz
+}
+
+model Ubicacion {
+  id           Int      @id @default(autoincrement())
+  canalId      Int
+  canal        Canal    @relation(fields: [canalId], references: [id], onDelete: Cascade)
+  profundidad  Int      // 1 al 10 (10 = fondo, 1 = frente)
+  estibaId     Int?     @unique
+  estiba       Estiba?  @relation(fields: [estibaId], references: [id], onDelete: SetNull)
+  
+  @@unique([canalId, profundidad])
 }
 
 model ActivityLog {

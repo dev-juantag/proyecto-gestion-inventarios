@@ -22,11 +22,11 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+    <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-slate-50  font-sans text-slate-900 ">
       <Topbar user={user} />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar role={user.role as string} />
-        <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-background-dark/50 p-4 md:p-8">
+        <main className="flex-1 overflow-y-auto bg-slate-50  p-4 md:p-8">
           {children}
         </main>
       </div>
