@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:dev.db"
+}
+
+model Role {
+  id    Int    @id @default(autoincrement())
+  name  String @unique // Super Admin, Admin, Operador
+  users User[]
+}
+
+model User {
+  id         Int      @id @default(autoincrement())
+  correo     String   @unique
+  password   String
+  documento  String   @unique
+  nombre     String
+  apellidos  String
+  lastLogin  DateTime @default(now())
+  isActive   Boolean  @default(true)
+  roleId     Int
+  role       Role     @relation(fields: [roleId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Lote {
+  id             Int      @id @default(autoincrement())
+  lotId          String   @unique // e.g. LOT-2023-A982
+  productionDate DateTime
+  productType    String   // Electronics, Dry Goods, etc.
+  quantity       Int
+  quantityType   String   // PLT, BOX, UNT
+  status         String   // QC Passed, Pending, Hold, Stored
+  location       String?  // Optional initially, e.g. SLOT-B12-A04
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model ActivityLog {
+  id          Int      @id @default(autoincrement())
+  action      String   // e.g. Lote Registrado, Usuario Creado
+  description String
+  userId      Int?     // Who did it
+  createdAt   DateTime @default(now())
+}
