@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Drive-In Racking Control System</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101622",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2d3748;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased overflow-x-hidden">
+<div class="flex h-screen w-full flex-col overflow-hidden">
+<header class="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark px-6">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-3 text-primary">
+<span class="material-symbols-outlined text-3xl">grid_view</span>
+<h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white">LogisticsMaster <span class="font-normal opacity-60">Racking</span></h1>
+</div>
+<div class="h-6 w-px bg-slate-200 dark:border-slate-800"></div>
+<nav class="hidden md:flex items-center gap-1">
+<button class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-sm">dashboard</span> Dashboard
+                    </button>
+<button class="flex items-center gap-2 px-3 py-2 text-sm font-medium bg-primary/10 text-primary rounded-lg">
+<span class="material-symbols-outlined text-sm">inventory_2</span> Rack Visualizer
+                    </button>
+<button class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-sm">history</span> Movements
+                    </button>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative group">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400">search</span>
+<input class="h-9 w-64 rounded-lg border-none bg-slate-100 dark:bg-slate-800 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary" placeholder="Search Lot ID..." type="text"/>
+</div>
+<button class="relative flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500"></span>
+</button>
+<div class="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold overflow-hidden">
+<img class="h-full w-full object-cover" data-alt="User profile avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCW6kXrHlmh4hk6pcMSYOKNiajE7FPZpUGg_vH1UaO7t7OkyKdDx-L86ikEapzxFhYMda3FY07C12nCWL1J1p5U2w91G4U7I1P5-xHblFH26YPQtY0F1NU19Vo05A4A8CPgQRJtXS1Vm_mm1HxDj3fGzZusOZSN0ZXYBgTutsQB-926gjaarz2oxKkHQe-OdXhLucfiLk9MakzVIRX6HCcVrhrcN8TEltcM6R1nFPPiGgfpl1Cfdl8z4y3SGAxPQkcrn3CYTpOp2Rl1"/>
+</div>
+</div>
+</header>
+<main class="flex flex-1 overflow-hidden">
+<aside class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark p-4 flex flex-col gap-6">
+<div>
+<h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Location Control</h3>
+<div class="space-y-1">
+<button class="w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg bg-slate-100 dark:bg-slate-800">
+<span>Warehouse A1</span>
+<span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+<div class="p-3 bg-primary/5 border border-primary/20 rounded-lg mt-4">
+<p class="text-xs text-primary font-bold mb-1">SELECTED ZONE</p>
+<p class="text-sm font-semibold">Heavy Duty Drive-In</p>
+<div class="mt-3 grid grid-cols-2 gap-2">
+<div class="bg-white dark:bg-slate-900 p-2 rounded border border-slate-200 dark:border-slate-800">
+<p class="text-[10px] text-slate-400">TOTAL CAP</p>
+<p class="text-sm font-bold">70 Slots</p>
+</div>
+<div class="bg-white dark:bg-slate-900 p-2 rounded border border-slate-200 dark:border-slate-800">
+<p class="text-[10px] text-slate-400">OCCUPIED</p>
+<p class="text-sm font-bold text-primary">54</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div>
+<h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Legend</h3>
+<div class="space-y-3">
+<div class="flex items-center gap-3">
+<div class="h-4 w-4 rounded bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600"></div>
+<span class="text-sm">Empty Slot</span>
+</div>
+<div class="flex items-center gap-3">
+<div class="h-4 w-4 rounded bg-amber-500/30 border border-amber-500"></div>
+<span class="text-sm">Partial Occupancy</span>
+</div>
+<div class="flex items-center gap-3">
+<div class="h-4 w-4 rounded bg-primary/30 border border-primary"></div>
+<span class="text-sm">Full Capacity</span>
+</div>
+<div class="flex items-center gap-3">
+<div class="h-4 w-4 rounded bg-red-500/30 border border-red-500"></div>
+<span class="text-sm">Maintenance / Hold</span>
+</div>
+</div>
+</div>
+<div class="mt-auto">
+<button class="w-full flex items-center justify-center gap-2 bg-primary py-2.5 rounded-lg text-sm font-bold text-white hover:bg-primary/90">
+<span class="material-symbols-outlined text-sm text-white">swap_horiz</span>
+                        Initiate Move Lot
+                    </button>
+</div>
+</aside>
+<section class="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-slate-950/50">
+<div class="p-6 pb-0">
+<div class="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+<div>
+<h2 class="text-2xl font-bold">Aisle 04 Visual Grid</h2>
+<p class="text-sm text-slate-500 dark:text-slate-400">Technical view: 10 Positions Deep (X) × 7 Levels High (Y)</p>
+</div>
+<div class="flex gap-2">
+<button class="h-9 px-4 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-base">filter_list</span> Depth View
+                            </button>
+<button class="h-9 px-4 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-base">print</span> Export PDF
+                            </button>
+</div>
+</div>
+</div>
+<div class="flex-1 overflow-auto p-6">
+<div class="min-w-[1000px] bg-white dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xl">
+<div class="grid grid-cols-[80px_repeat(10,1fr)] bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+<div class="p-3 text-[10px] font-bold text-slate-400 uppercase border-r border-slate-200 dark:border-slate-800 flex items-center justify-center">Lvl / Pos</div>
+<div class="p-3 text-center text-xs font-bold text-slate-500">POS 01</div>
+<div class="p-3 text-center text-xs font-bold text-slate-500">POS 02</div>
+<div class="p-3 text-center text-xs font-bold text-slate-500">POS 03</div>
+<div class="p-3 text-center text-xs font-bold text-slate-500">POS 04</div>
+<div class="p-3 text-center text-xs font-bold text-slate-500">POS 05</div>
+<div class="p-3 text-center text-xs font-bold text-slate-500">POS 06</div>
+<div class="p-3 text-center text-xs font-bold text-slate-500">POS 07</div>
+<div class="p-3 text-center text-xs font-bold text-slate-500">POS 08</div>
+<div class="p-3 text-center text-xs font-bold text-slate-500">POS 09</div>
+<div class="p-3 text-center text-xs font-bold text-slate-500">POS 10</div>
+</div>
+<div class="flex flex-col-reverse">
+<div class="grid grid-cols-[80px_repeat(10,1fr)] border-t border-slate-200 dark:border-slate-800">
+<div class="p-3 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex items-center justify-center font-bold text-slate-500">L1</div>
+<button class="h-24 p-2 transition-all hover:bg-primary/5 group relative overflow-hidden">
+<div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 group-hover:scale-95 transition-transform">
+<span class="material-symbols-outlined text-primary text-xl">package_2</span>
+<span class="text-[10px] font-bold text-primary">FULL</span>
+</div>
+</button>
+<button class="h-24 p-2 transition-all hover:bg-primary/5 group relative overflow-hidden">
+<div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 group-hover:scale-95 transition-transform text-primary">
+<span class="material-symbols-outlined text-xl">package_2</span>
+<span class="text-[10px] font-bold uppercase">Full</span>
+</div>
+</button>
+<button class="h-24 p-2 transition-all hover:bg-primary/5 group relative overflow-hidden">
+<div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 group-hover:scale-95 transition-transform text-primary">
+<span class="material-symbols-outlined text-xl">package_2</span>
+<span class="text-[10px] font-bold uppercase">Full</span>
+</div>
+</button>
+<button class="h-24 p-2 transition-all hover:bg-primary/5 group relative overflow-hidden">
+<div class="h-full w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 flex flex-col items-center justify-center gap-1 group-hover:scale-95 transition-transform">
+<span class="text-[10px] font-bold text-slate-400">EMPTY</span>
+</div>
+</button>
+<button class="h-24 p-2 transition-all hover:bg-primary/5 group relative overflow-hidden">
+<div class="h-full w-full rounded border border-amber-500 bg-amber-500/20 flex flex-col items-center justify-center gap-1 group-hover:scale-95 transition-transform text-amber-500">
+<span class="material-symbols-outlined text-xl">inventory_2</span>
+<span class="text-[10px] font-bold uppercase">Partial</span>
+</div>
+</button>
+<button class="h-24 p-2 transition-all hover:bg-primary/5 group relative overflow-hidden">
+<div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 group-hover:scale-95 transition-transform text-primary">
+<span class="material-symbols-outlined text-xl">package_2</span>
+<span class="text-[10px] font-bold uppercase">Full</span>
+</div>
+</button>
+<button class="h-24 p-2 transition-all hover:bg-primary/5 group relative overflow-hidden">
+<div class="h-full w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 flex flex-col items-center justify-center gap-1 group-hover:scale-95 transition-transform">
+<span class="text-[10px] font-bold text-slate-400">EMPTY</span>
+</div>
+</button>
+<button class="h-24 p-2 transition-all hover:bg-primary/5 group relative overflow-hidden">
+<div class="h-full w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 flex flex-col items-center justify-center gap-1 group-hover:scale-95 transition-transform">
+<span class="text-[10px] font-bold text-slate-400">EMPTY</span>
+</div>
+</button>
+<button class="h-24 p-2 transition-all hover:bg-primary/5 group relative overflow-hidden">
+<div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 group-hover:scale-95 transition-transform text-primary">
+<span class="material-symbols-outlined text-xl">package_2</span>
+<span class="text-[10px] font-bold uppercase">Full</span>
+</div>
+</button>
+<button class="h-24 p-2 transition-all hover:bg-primary/5 group relative overflow-hidden">
+<div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 group-hover:scale-95 transition-transform text-primary">
+<span class="material-symbols-outlined text-xl">package_2</span>
+<span class="text-[10px] font-bold uppercase">Full</span>
+</div>
+</button>
+</div>
+<div class="grid grid-cols-[80px_repeat(10,1fr)] border-t border-slate-200 dark:border-slate-800">
+<div class="p-3 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex items-center justify-center font-bold text-slate-500">L2</div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-amber-500 bg-amber-500/20 flex flex-col items-center justify-center gap-1 text-amber-500"><span class="material-symbols-outlined text-xl">inventory_2</span><span class="text-[10px] font-bold">PARTIAL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800"></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-amber-500 bg-amber-500/20 flex flex-col items-center justify-center gap-1 text-amber-500"><span class="material-symbols-outlined text-xl">inventory_2</span><span class="text-[10px] font-bold">PARTIAL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+</div>
+<div class="grid grid-cols-[80px_repeat(10,1fr)] border-t border-slate-200 dark:border-slate-800">
+<div class="p-3 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex items-center justify-center font-bold text-slate-500">L3</div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-red-500 bg-red-500/20 flex flex-col items-center justify-center gap-1 text-red-500"><span class="material-symbols-outlined text-xl">lock</span><span class="text-[10px] font-bold">HOLD</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800"></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800"></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800"></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+</div>
+<div class="grid grid-cols-[80px_repeat(10,1fr)] border-t border-slate-200 dark:border-slate-800">
+<div class="p-3 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex items-center justify-center font-bold text-slate-500">L4</div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group ring-2 ring-primary ring-inset z-10"><div class="h-full w-full rounded border border-primary bg-primary flex flex-col items-center justify-center gap-1 text-white"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">SELECTED</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800"></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-amber-500 bg-amber-500/20 flex flex-col items-center justify-center gap-1 text-amber-500"><span class="material-symbols-outlined text-xl">inventory_2</span><span class="text-[10px] font-bold">PARTIAL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-amber-500 bg-amber-500/20 flex flex-col items-center justify-center gap-1 text-amber-500"><span class="material-symbols-outlined text-xl">inventory_2</span><span class="text-[10px] font-bold">PARTIAL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800"></div></div>
+</div>
+<div class="grid grid-cols-[80px_repeat(10,1fr)] border-t border-slate-200 dark:border-slate-800">
+<div class="p-3 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex items-center justify-center font-bold text-slate-500">L5</div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800"></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800"></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800"></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800"></div></div>
+</div>
+<div class="grid grid-cols-[80px_repeat(10,1fr)] border-t border-slate-200 dark:border-slate-800">
+<div class="p-3 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex items-center justify-center font-bold text-slate-500">L6</div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800"></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800"></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800"></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800"></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+</div>
+<div class="grid grid-cols-[80px_repeat(10,1fr)] border-t border-slate-200 dark:border-slate-800">
+<div class="p-3 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex items-center justify-center font-bold text-slate-500">L7</div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800"></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800"></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800"></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800"></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800"></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800"></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-amber-500 bg-amber-500/20 flex flex-col items-center justify-center gap-1 text-amber-500"><span class="material-symbols-outlined text-xl">inventory_2</span><span class="text-[10px] font-bold">PARTIAL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+<div class="h-24 p-2 group"><div class="h-full w-full rounded border border-primary bg-primary/20 flex flex-col items-center justify-center gap-1 text-primary"><span class="material-symbols-outlined text-xl">package_2</span><span class="text-[10px] font-bold">FULL</span></div></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<aside class="w-80 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark p-6 flex flex-col overflow-y-auto">
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-bold text-lg">Lot Details</h3>
+<button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="space-y-6">
+<div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+<div class="flex justify-between items-start mb-4">
+<div>
+<p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Lot Identifier</p>
+<h4 class="text-xl font-bold">LOT-8829-X</h4>
+</div>
+<span class="px-2 py-1 rounded bg-green-500/10 text-green-500 text-[10px] font-bold">ACTIVE</span>
+</div>
+<div class="space-y-3">
+<div class="flex justify-between py-1 border-b border-slate-200 dark:border-slate-800">
+<span class="text-xs text-slate-500">Location</span>
+<span class="text-xs font-semibold">L4 - POS 03</span>
+</div>
+<div class="flex justify-between py-1 border-b border-slate-200 dark:border-slate-800">
+<span class="text-xs text-slate-500">Item SKU</span>
+<span class="text-xs font-semibold">MT-9044-BLU</span>
+</div>
+<div class="flex justify-between py-1 border-b border-slate-200 dark:border-slate-800">
+<span class="text-xs text-slate-500">Qty / Units</span>
+<span class="text-xs font-semibold">1,200 KG</span>
+</div>
+<div class="flex justify-between py-1 border-b border-slate-200 dark:border-slate-800">
+<span class="text-xs text-slate-500">Arrival Date</span>
+<span class="text-xs font-semibold">24 Oct 2023</span>
+</div>
+</div>
+</div>
+<div>
+<p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Quick Actions</p>
+<div class="grid grid-cols-1 gap-2">
+<button class="flex items-center gap-3 w-full px-4 py-3 rounded-lg border border-primary/30 bg-primary/5 text-primary text-sm font-semibold hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined">swap_horiz</span> Move to Position...
+                            </button>
+<button class="flex items-center gap-3 w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+<span class="material-symbols-outlined">edit</span> Modify Metadata
+                            </button>
+<button class="flex items-center gap-3 w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-red-500">
+<span class="material-symbols-outlined">lock_reset</span> Place on Hold
+                            </button>
+</div>
+</div>
+<div>
+<p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Recent Activity</p>
+<div class="relative space-y-4 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-200 dark:before:bg-slate-800">
+<div class="relative pl-8">
+<div class="absolute left-0 top-1 h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center ring-4 ring-white dark:ring-background-dark">
+<div class="h-2 w-2 rounded-full bg-primary"></div>
+</div>
+<p class="text-xs font-bold">Pallet Restack</p>
+<p class="text-[10px] text-slate-500">System • 2 hours ago</p>
+</div>
+<div class="relative pl-8">
+<div class="absolute left-0 top-1 h-6 w-6 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center ring-4 ring-white dark:ring-background-dark">
+<div class="h-2 w-2 rounded-full bg-slate-400"></div>
+</div>
+<p class="text-xs font-bold">Moved from L2 - POS 01</p>
+<p class="text-[10px] text-slate-500">Op ID: 442 • Oct 23, 14:20</p>
+</div>
+</div>
+</div>
+</div>
+</aside>
+</main>
+<footer class="h-10 shrink-0 bg-white dark:bg-background-dark border-t border-slate-200 dark:border-slate-800 px-6 flex items-center justify-between text-[10px] text-slate-500 font-medium">
+<div class="flex items-center gap-4">
+<span>SYSTEM STATUS: <span class="text-green-500 font-bold">OPERATIONAL</span></span>
+<span class="w-px h-3 bg-slate-200 dark:bg-slate-800"></span>
+<span>LAST SCAN: 4 MINUTES AGO</span>
+</div>
+<div class="flex items-center gap-4">
+<span>WAREHOUSE SERVER A1-09</span>
+<span>V2.4.12-BUILD</span>
+</div>
+</footer>
+</div>
+</body></html>
