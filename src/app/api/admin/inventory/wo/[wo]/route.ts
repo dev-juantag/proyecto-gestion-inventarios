@@ -21,7 +21,7 @@ async function requireSuperAdmin() {
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { wo: string } }
+  { params }: { params: Promise<{ wo: string }> }
 ) {
   const user = await requireSuperAdmin();
   if (!user) {
