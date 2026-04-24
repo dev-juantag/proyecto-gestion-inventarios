@@ -16,9 +16,9 @@ export default function RacksConfig() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-
   const [newRack, setNewRack] = useState({
     rack: "",
+    columnas: 1,
     niveles: 7,
     profundidad: 10,
   });
@@ -57,7 +57,7 @@ export default function RacksConfig() {
       const data = await res.json();
       if (res.ok) {
         setSuccess(data.message);
-        setNewRack({ rack: "", niveles: 7, profundidad: 10 });
+        setNewRack({ rack: "", columnas: 1, niveles: 7, profundidad: 10 });
         fetchRacks();
       } else {
         setError(data.error || "Error al crear matriz");
@@ -69,8 +69,29 @@ export default function RacksConfig() {
     }
   };
 
-  const handleDeactivate = async (rackName: string) => {
-    if (!confirm(`¿Estás seguro de desactivar (ocultar) el Rack ${rackName}?`)) return;
+  const handleToggleActive = async (rackName: string, currentStatus: boolean) => {
+    const action = currentStatus ? "desactivar" : "activar";
+    if (!confirm(`¿Estás seguro de ${action} el Rack ${rackName}?`)) return;
+    
+    try {
+      const res = await fetch("/api/admin/racks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rack: rackName, isActive: !currentStatus }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        fetchRacks();
+      } else {
+        alert(data.error || `No se pudo ${action}`);
+      }
+    } catch (err) {
+      alert("Error de red");
+    }
+  };
+
+  const handleDeletePermanent = async (rackName: string) => {
+    if (!confirm(`¡ADVERTENCIA! ¿Estás seguro de ELIMINAR PERMANENTEMENTE el Rack ${rackName}? Esta acción no se puede deshacer y borrará todas las ubicaciones asociadas.`)) return;
     
     try {
       const res = await fetch("/api/admin/racks", {
@@ -78,10 +99,11 @@ export default function RacksConfig() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rack: rackName }),
       });
+      const data = await res.json();
       if (res.ok) {
         fetchRacks();
       } else {
-        alert("No se pudo desactivar");
+        alert(data.error || "No se pudo eliminar el rack");
       }
     } catch (err) {
       alert("Error de red");
@@ -114,10 +136,10 @@ export default function RacksConfig() {
                  <label className="text-sm font-bold text-slate-700">Letra del Rack</label>
                  <input 
                    type="text" 
-                   maxLength={2}
+                   maxLength={5}
                    value={newRack.rack}
                    onChange={e => setNewRack({...newRack, rack: e.target.value.toUpperCase()})}
-                   placeholder="Ej: D" 
+                   placeholder="Ej: F-10" 
                    className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none font-mono uppercase" 
                    required 
                  />
@@ -129,8 +151,8 @@ export default function RacksConfig() {
                    <input 
                      type="number" 
                      min={1}
-                     value={1}
-                     onChange={() => {}}
+                     value={newRack.columnas}
+                     onChange={e => setNewRack({...newRack, columnas: Number(e.target.value)})}
                      className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none" 
                      required 
                    />
@@ -172,7 +194,7 @@ export default function RacksConfig() {
                  disabled={isSubmitting}
                  className="w-full mt-4 flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform disabled:opacity-70"
                >
-                 {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : "Generar Matriz"}
+                 {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : "Generar Rack"}
                </button>
              </form>
            </div>
@@ -199,21 +221,32 @@ export default function RacksConfig() {
                      <div className="flex justify-between items-start mb-4">
                        <div>
                          <h4 className="text-2xl font-black text-slate-900 tracking-tight">RACK {r.rack}</h4>
-                         <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
-                           {r.isActive ? 'Activo' : 'Desactivado'}
-                         </span>
+                          <span className={`text-[10px] font-bold uppercase tracking-wider ${r.isActive ? 'text-primary' : 'text-slate-400'}`}>
+                            {r.isActive ? 'Activo' : 'Desactivado'}
+                          </span>
                        </div>
-                       {r.isActive && (
-                         <button onClick={() => handleDeactivate(r.rack)} className="text-red-400 hover:text-red-600 transition-colors p-2 hover:bg-red-50 rounded-lg">
-                           <Trash2 size={18} />
-                         </button>
-                       )}
+                        <div className="flex gap-1">
+                          <button 
+                            onClick={() => handleToggleActive(r.rack, r.isActive)} 
+                            className={`${r.isActive ? 'text-amber-500 hover:bg-amber-50' : 'text-emerald-500 hover:bg-emerald-50'} transition-colors p-2 rounded-lg`}
+                            title={r.isActive ? "Desactivar" : "Activar"}
+                          >
+                            {r.isActive ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
+                          </button>
+                          <button 
+                            onClick={() => handleDeletePermanent(r.rack)} 
+                            className="text-red-400 hover:text-red-600 transition-colors p-2 hover:bg-red-50 rounded-lg"
+                            title="Eliminar permanentemente"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
                      </div>
                      
                      <div className="grid grid-cols-2 gap-3 mb-2">
                        <div className="bg-white p-2 rounded-lg border border-slate-100 shadow-sm">
                          <p className="text-[10px] text-slate-500 font-bold uppercase">Columnas Largas</p>
-                         <p className="text-lg font-black text-slate-700">1</p>
+                         <p className="text-lg font-black text-slate-700">{r._max.columna}</p>
                        </div>
                        <div className="bg-white p-2 rounded-lg border border-slate-100 shadow-sm">
                          <p className="text-[10px] text-slate-500 font-bold uppercase">Niveles Altura</p>

@@ -1,92 +1,100 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import prisma from "@/lib/prisma";
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
     // 1. Métricas Globales
-    const totalUbicaciones = await prisma.ubicacion.count({
-      where: { canal: { isActive: true } }
+    const totalUbicaciones = await (prisma as any).ubicacion.count({
+      where: { rack: { isActive: true } }
     });
     
-    const ocupadas = await prisma.ubicacion.count({
-      where: { canal: { isActive: true }, estibaId: { not: null } }
+    const ocupadas = await (prisma as any).ubicacion.count({
+      where: { rack: { isActive: true }, estibaId: { not: null } }
     });
 
     const totalEstibas = await prisma.estiba.count({
       where: { status: "STORED" }
     });
 
-    const totalPaquetes = await prisma.paquete.count();
-
     const porcentajeGlobal = totalUbicaciones > 0 ? ((ocupadas / totalUbicaciones) * 100).toFixed(1) : "0.0";
 
-    // 2. Traer Racks y sus Canales con el detalle de ocupación
-    // Para simplificar, agrupamos por Rack en memoria o traemos todo si no es inmenso
-    const racksData = await prisma.canal.findMany({
+    // 2. Traer Racks y sus Ubicaciones
+    const racksData = await (prisma as any).rack.findMany({
       where: { isActive: true },
       include: {
         ubicaciones: {
-          orderBy: { profundidad: 'asc' },
+          orderBy: [
+            { columna: 'asc' },
+            { nivel: 'asc' },
+            { profundidad: 'asc' }
+          ],
           include: { estiba: { include: { lote: true } } }
         }
       },
-      orderBy: [
-        { rack: 'asc' },
-        { nivel: 'desc' }
-      ]
+      orderBy: { nombre: 'asc' }
     });
 
-    // Procesar agrupamiento por Rack
-    const racksMap = new Map();
+    // Procesar agrupamiento por Rack y "Canal" (Columna + Nivel)
     const alertas: any[] = [];
+    
+    const racks = racksData.map((rack: any) => {
+      let rackOcupadas = 0;
+      const canalesMap = new Map();
 
-    racksData.forEach((canal: any) => {
-      if (!racksMap.has(canal.rack)) {
-        racksMap.set(canal.rack, {
-          rack: canal.rack,
-          totalUbicaciones: 0,
-          ocupadas: 0,
-          canales: []
-        });
-      }
-      
-      const r = racksMap.get(canal.rack);
-      r.totalUbicaciones += canal.maxCapacidad;
-      
-      const ubicacionesOcupadas = canal.ubicaciones.filter((u: any) => u.estibaId !== null);
-      r.ocupadas += ubicacionesOcupadas.length;
+      rack.ubicaciones.forEach((u: any) => {
+        const canalKey = `C${u.columna}-N${u.nivel}`;
+        if (!canalesMap.has(canalKey)) {
+          canalesMap.set(canalKey, {
+            id: canalKey,
+            nivel: u.nivel,
+            columna: u.columna,
+            maxCapacidad: rack.profundidad,
+            ocupadas: 0,
+            ubicaciones: []
+          });
+        }
+        
+        const c = canalesMap.get(canalKey);
+        if (u.estibaId) {
+          c.ocupadas++;
+          rackOcupadas++;
+        }
 
-      const canalOcupacion = (ubicacionesOcupadas.length / canal.maxCapacidad) * 100;
-      if (canalOcupacion >= 90) {
-         alertas.push({
-           type: 'CRITICAL',
-           message: `Canal Rack ${canal.rack} (Col ${canal.columna}, Niv ${canal.nivel}) al ${canalOcupacion.toFixed(0)}% de capacidad.`,
-           time: 'Justo ahora'
-         });
-      }
-
-      r.canales.push({
-        id: canal.id,
-        nivel: canal.nivel,
-        maxCapacidad: canal.maxCapacidad,
-        ocupadas: ubicacionesOcupadas.length,
-        ubicaciones: canal.ubicaciones.map((u: any) => ({
+        c.ubicaciones.push({
           id: u.id,
           profundidad: u.profundidad,
           vacio: u.estibaId === null,
           estiba: u.estiba?.codigoBarras || null,
-          lote: u.estiba?.lote?.lotId || null,
-          paquete: u.estiba?.lote?.paqueteId || null,
-          vence: u.estiba?.lote?.productionDate || null
-        }))
+          tipo: u.estiba?.tipo || null,
+          lote: u.estiba?.lote?.numeroLote || null,
+          paquete: u.estiba?.lote?.wo || null, // Reuse package field for WO to keep UI intact
+          modelo: u.estiba?.lote?.modelo || null,
+          vence: u.estiba?.lote?.fechaProduccion || null,
+          intervencion: u.estiba?.lote?.fechaIntervencion || null
+        });
       });
-    });
 
-    const racks = Array.from(racksMap.values());
+      // Alerta por Rack completo
+      const totalRackCapacidad = rack.columnas * rack.niveles * rack.profundidad;
+      const rackOcupacionPct = (rackOcupadas / totalRackCapacidad) * 100;
+      
+      if (rackOcupacionPct >= 90) {
+        alertas.push({
+          type: 'CRITICAL',
+          message: `Rack ${rack.nombre} al ${rackOcupacionPct.toFixed(0)}% de capacidad total.`,
+          time: 'Justo ahora'
+        });
+      }
+
+      return {
+        rack: rack.nombre,
+        totalUbicaciones: rack.columnas * rack.niveles * rack.profundidad,
+        ocupadas: rackOcupadas,
+        canales: Array.from(canalesMap.values())
+      };
+    });
 
     return NextResponse.json({
       success: true,
@@ -95,7 +103,7 @@ export async function GET() {
         ocupadas,
         porcentajeGlobal,
         totalEstibas,
-        totalPaquetes
+        totalPaquetes: 0 // Removed in schema but kept for UI compat
       },
       racks: racks,
       alertas: alertas.slice(0, 5) // TOP 5 alertas

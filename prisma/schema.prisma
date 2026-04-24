@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:dev.db"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Role {
@@ -30,70 +31,53 @@ model User {
   updatedAt            DateTime @updatedAt
 }
 
-model Paquete {
-  id          Int      @id @default(autoincrement())
-  codigo      String   @unique // e.g. PAQ-2026-001
-  descripcion String?
-  lotes       Lote[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
 model Lote {
-  id                 Int      @id @default(autoincrement())
-  lotId              String   @unique // e.g. LOT-2023-A982
-  paqueteId          Int
-  paquete            Paquete  @relation(fields: [paqueteId], references: [id])
-  productionDate     DateTime // Clave para FEFO
-  receptionDate      DateTime @default(now())
-  requiresInspection Boolean  @default(false)
-  productType        String   // Electronics, Dry Goods, etc.
-  quantity           Int
-  quantityType       String   // PLT, BOX, UNT
-  status             String   // PENDING_INSPECTION, INSPECTED, STORED, DISPATCHED
-  estibas            Estiba[]
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                Int      @id @default(autoincrement())
+  wo                String   // e.g. "5465511"
+  numeroLote        String   // e.g. "L1"
+  modelo            String?  // e.g. "CT-100 ES/KS"
+  cantidadEstibas   Int      // Total estibas
+  fechaIntervencion DateTime
+  fechaProduccion   DateTime
+  estibas           Estiba[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([wo, numeroLote]) // Un lote es único por WO y su número (ej. 5465511 - L1)
 }
 
 model Estiba {
   id           Int      @id @default(autoincrement())
   codigoBarras String   @unique // e.g. EST-XYZ987
+  tipo         String   @default("GENERAL") // e.g. CHASIS, PLASTICO, MOTORES, TORNILERIA, TANQUES
   loteId       Int
   lote         Lote     @relation(fields: [loteId], references: [id], onDelete: Cascade)
-  status       String   @default("IN_TRANSIT") // IN_TRANSIT, IN_INSPECTION, STORED, DISPATCHED
+  status       String   @default("STORED") // IN_TRANSIT, STORED, DISPATCHED
   ubicacion    Ubicacion?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
 
-// Representa un túnel (canal) Drive-in
-model Canal {
-  id           Int         @id @default(autoincrement())
-  rack         String      // Identificador del Rack/Estantería (ej: A, B, C)
-  nivel        Int         // 1-7
-  maxCapacidad Int         @default(10) // 10 posiciones de profundidad máxima
-  isActive     Boolean     @default(true)
-  ubicaciones  Ubicacion[]
-  
-  @@unique([rack, nivel]) // Cada canal es único en esa matriz
+model Rack {
+  id          Int         @id @default(autoincrement())
+  nombre      String      @unique // e.g. "A01"
+  columnas    Int         @default(1) // Cantidad de columnas (ancho)
+  niveles     Int         @default(7) // Altura
+  profundidad Int         @default(10) // LIFO depth
+  isActive    Boolean     @default(true) // Puede desactivarse pero no borrarse/repetirse
+  ubicaciones Ubicacion[]
+  createdAt   DateTime    @default(now())
 }
 
 model Ubicacion {
-  id           Int      @id @default(autoincrement())
-  canalId      Int
-  canal        Canal    @relation(fields: [canalId], references: [id], onDelete: Cascade)
-  profundidad  Int      // 1 al 10 (10 = fondo, 1 = frente)
-  estibaId     Int?     @unique
-  estiba       Estiba?  @relation(fields: [estibaId], references: [id], onDelete: SetNull)
-  
-  @@unique([canalId, profundidad])
-}
-
-model ActivityLog {
   id          Int      @id @default(autoincrement())
-  action      String   // e.g. Lote Registrado, Usuario Creado
-  description String
-  userId      Int?     // Who did it
-  createdAt   DateTime @default(now())
+  rackId      Int
+  rack        Rack     @relation(fields: [rackId], references: [id], onDelete: Cascade)
+  columna     Int      // 1 al N
+  nivel       Int      // 1 al 7
+  profundidad Int      // 1 al 10 (1 = frente, 10 = fondo LIFO)
+  estibaId    Int?     @unique
+  estiba      Estiba?  @relation(fields: [estibaId], references: [id], onDelete: SetNull)
+  
+  @@unique([rackId, columna, nivel, profundidad])
 }

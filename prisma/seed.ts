@@ -47,38 +47,48 @@ async function main() {
   console.log('Seed exitoso: usuario', superAdmin.correo);
 
   // 3. Crear infraestructura física de Drive-in
-  // --- 2. Auto-Generar Racks Virtuales Iniciales (A, B, C) ---
-  // Drive-in: 1 Rack = 70 posiciones (7 niveles x 10 de profundidad)
-  const racksName = ['A', 'B', 'C'];
+  const racksName = ['A01', 'B01', 'C01'];
   const MAX_NIVELES = 7;
   const MAX_PROFUNDIDAD = 10;
+  const COLUMNAS = 1;
   
   let locationsCreated = 0;
 
-  for (const rack of racksName) {
-    for (let nivel = 1; nivel <= MAX_NIVELES; nivel++) {
-      // Create Canal
-      const canal = await prisma.canal.upsert({
-        where: { rack_nivel: { rack, nivel } },
-        update: {},
-        create: {
-          rack,
-          nivel,
-          maxCapacidad: MAX_PROFUNDIDAD
-        }
-      });
+  for (const rackName of racksName) {
+    const rack = await prisma.rack.upsert({
+      where: { nombre: rackName },
+      update: {},
+      create: {
+        nombre: rackName,
+        columnas: COLUMNAS,
+        niveles: MAX_NIVELES,
+        profundidad: MAX_PROFUNDIDAD,
+        isActive: true,
+      }
+    });
 
-      // Create Ubicaciones inside Canal
-      for (let prof = 1; prof <= MAX_PROFUNDIDAD; prof++) {
-        await prisma.ubicacion.upsert({
-          where: { canalId_profundidad: { canalId: canal.id, profundidad: prof } },
-          update: {},
-          create: {
-            canalId: canal.id,
-            profundidad: prof
-          }
-        });
-        locationsCreated++;
+    for (let c = 1; c <= COLUMNAS; c++) {
+      for (let n = 1; n <= MAX_NIVELES; n++) {
+        for (let p = 1; p <= MAX_PROFUNDIDAD; p++) {
+          await prisma.ubicacion.upsert({
+            where: {
+              rackId_columna_nivel_profundidad: {
+                rackId: rack.id,
+                columna: c,
+                nivel: n,
+                profundidad: p
+              }
+            },
+            update: {},
+            create: {
+              rackId: rack.id,
+              columna: c,
+              nivel: n,
+              profundidad: p
+            }
+          });
+          locationsCreated++;
+        }
       }
     }
   }

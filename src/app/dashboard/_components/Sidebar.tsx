@@ -54,11 +54,23 @@ export default function Sidebar({ role }: { role: string }) {
                   className={`flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all ${
                     pathname === "/dashboard/racks"
                       ? "bg-primary text-white shadow-lg shadow-primary/20"
-                      : "text-slate-600 hover:bg-slate-100  :bg-slate-800"
+                      : "text-slate-600 hover:bg-slate-100"
                   }`}
                 >
                   <Server size={20} />
                   <span className="text-sm font-semibold">Gestión de Racks</span>
+                </Link>
+
+                <Link
+                  href="/dashboard/usuarios"
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all ${
+                    pathname === "/dashboard/usuarios"
+                      ? "bg-primary text-white shadow-lg shadow-primary/20"
+                      : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  <PlusSquare size={20} />
+                  <span className="text-sm font-semibold">Usuarios</span>
                 </Link>
               </>
             ) : null}
