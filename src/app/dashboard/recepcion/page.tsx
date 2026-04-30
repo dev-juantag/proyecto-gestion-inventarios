@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Package, Truck, ArrowRightLeft, Search, CheckCircle2, AlertCircle, Maximize2, Loader2, ChevronLeft, Trash2 } from "lucide-react";
+import { Package, Truck, ArrowRightLeft, Search, CheckCircle2, AlertCircle, Maximize2, Loader2, ChevronLeft, Trash2, FileUp, Download } from "lucide-react";
+import { MODEL_RULES } from "@/lib/modelRules";
+import * as XLSX from "xlsx";
 
 export default function GestionLotesPage() {
   const [activeTab, setActiveTab] = useState("recepcion");
@@ -17,19 +19,58 @@ export default function GestionLotesPage() {
       CHASIS: 0,
       PLASTICO: 0,
       MOTORES: 0,
-      TORNILERIA: 0
+      TORNILERIA: 0,
+      TANQUES: 0,
+      GENERAL: 0
     }
   });
 
   const totalEstibas = Object.values(formData.composicion).reduce((a, b) => a + (Number(b) || 0), 0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [statusMap, setStatusMap] = useState<any>(null);
+
+  // Auto-completar composición según modelo
+  useEffect(() => {
+    const clean = (s: string) => s.replace(/\s+/g, "").toUpperCase();
+    const cleanInput = clean(formData.modelo);
+
+    const modelKey = Object.keys(MODEL_RULES).find(k => {
+      const cleanKey = clean(k);
+      return cleanInput.length > 3 && (cleanInput.includes(cleanKey) || cleanKey.includes(cleanInput));
+    });
+    
+    if (modelKey) {
+      const rule = MODEL_RULES[modelKey];
+      setFormData(prev => ({
+        ...prev,
+        composicion: {
+          CHASIS: rule.CHASIS || 0,
+          PLASTICO: rule.PLASTICO || 0,
+          MOTORES: rule.MOTORES || 0,
+          TORNILERIA: rule.TORNILERIA || 0,
+          TANQUES: rule.TANQUES || 0,
+          GENERAL: 0
+        }
+      }));
+    }
+  }, [formData.modelo]);
 
   // -- Inventario State --
   const [inventario, setInventario] = useState<any[]>([]);
   const [loadingInv, setLoadingInv] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedWO, setSelectedWO] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  // Obtener rol del usuario
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) setUserRole(data.user.role);
+      });
+  }, []);
 
   // Cargar Inventario cuando se cambia a la pestaña
   useEffect(() => {
@@ -47,7 +88,7 @@ export default function GestionLotesPage() {
       modelo: "",
       fechaIntervencion: "",
       fechaProduccion: "",
-      composicion: { CHASIS: 0, PLASTICO: 0, MOTORES: 0, TORNILERIA: 0 }
+      composicion: { CHASIS: 0, PLASTICO: 0, MOTORES: 0, TORNILERIA: 0, TANQUES: 0, GENERAL: 0 }
     });
     setStatusMap(null);
     // Reset Inventario Search
@@ -150,7 +191,7 @@ export default function GestionLotesPage() {
           modelo: "", 
           fechaIntervencion: "", 
           fechaProduccion: "", 
-          composicion: { CHASIS: 0, PLASTICO: 0, MOTORES: 0, TORNILERIA: 0 } 
+          composicion: { CHASIS: 0, PLASTICO: 0, MOTORES: 0, TORNILERIA: 0, TANQUES: 0, GENERAL: 0 } 
         });
       } else {
         setStatusMap({ type: "error", message: data.error || "Error al asignar ubicacion." });
@@ -179,6 +220,96 @@ export default function GestionLotesPage() {
       }
     } catch (e) {
       alert("Error de red al intentar eliminar.");
+    }
+  };
+
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    setStatusMap(null);
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: "binary" });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
+
+        // Ignorar la primera fila (cabeceras)
+        const rows = data.slice(1);
+        
+        const jsonData = rows.filter(row => row.length > 0).map(row => ({
+          WO: row[0],
+          Lote: row[1],
+          Modelo: row[2],
+          Fecha_Produccion: row[3],
+          Fecha_Intervencion: row[4],
+          Codigo_Barras: row[5],
+          Tipo: row[6],
+          Rack: row[7],
+          Columna: row[8],
+          Nivel: row[9],
+          Profundidad: row[10]
+        }));
+
+        const res = await fetch("/api/inventory/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ data: jsonData }),
+        });
+
+        const result = await res.json();
+        if (res.ok) {
+          alert(`Importación completada: ${result.message}`);
+          if (result.errores) console.error("Errores parciales:", result.errores);
+          fetchInventario();
+        } else {
+          alert(`Error: ${result.error}`);
+        }
+      } catch (err) {
+        alert("Error al procesar el archivo Excel. Asegúrate de que el formato sea correcto.");
+      } finally {
+        setIsImporting(false);
+        if (e.target) e.target.value = "";
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const handleDownloadTemplate = () => {
+    const headers = "sep=,\nWO (A),Lote (B),Modelo (C),Fecha Produccion (D),Fecha Intervencion (E),Codigo Barras (F),Tipo (G),Rack (H),Columna (I),Nivel (J),Profundidad (K)";
+    const example = "5465511,L1,CT-100 ES/KS,2024-05-01,2024-05-15,,GENERAL,F-01,1,1,1";
+    const blob = new Blob([`${headers}\n${example}`], { type: "text/csv;charset=utf-8;" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "plantilla_inventario_cedi.csv";
+    a.click();
+  };
+
+  const handleUpdateDates = async (wo: string) => {
+    const fProd = prompt("Nueva Fecha Producción (AAAA-MM-DD):");
+    const fInt = prompt("Nueva Fecha Intervención (AAAA-MM-DD):");
+    if (!fProd && !fInt) return;
+
+    try {
+      const res = await fetch(`/api/admin/inventory/wo/${wo}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fechaProduccion: fProd, fechaIntervencion: fInt })
+      });
+      if (res.ok) {
+        alert("Fechas actualizadas correctamente.");
+        fetchInventario();
+      } else {
+        alert("Error al actualizar fechas.");
+      }
+    } catch (e) {
+      alert("Error de red.");
     }
   };
 
@@ -240,9 +371,26 @@ export default function GestionLotesPage() {
       {/* --- PESTAÑA RECEPCION --- */}
       {activeTab === "recepcion" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-           <div className="lg:col-span-2">
+            <div className="lg:col-span-2">
               <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                 <h2 className="text-xl font-bold text-slate-900 mb-6">Registrar Nuevo Lote</h2>
+                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <h2 className="text-xl font-bold text-slate-900">Registrar Nuevo Lote</h2>
+                    <div className="flex gap-2">
+                       {(userRole?.toLowerCase() === "super admin" || userRole?.toLowerCase() === "super_admin") && (
+                         <>
+                          <button onClick={handleDownloadTemplate} className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all text-xs font-black uppercase tracking-widest border border-slate-200">
+                              <Download size={16} />
+                              Plantilla
+                          </button>
+                          <label className="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl cursor-pointer transition-all text-xs font-black uppercase tracking-widest border border-primary/20">
+                              {isImporting ? <Loader2 className="animate-spin" size={16} /> : <FileUp size={16} />}
+                              {isImporting ? "Procesando..." : "Importar Excel"}
+                              <input type="file" accept=".xlsx, .xls" className="hidden" onChange={handleImportExcel} disabled={isImporting} />
+                          </label>
+                         </>
+                       )}
+                    </div>
+                 </div>
                  <form onSubmit={handleAssign} className="space-y-6">
                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                      <div className="space-y-2">
@@ -255,7 +403,20 @@ export default function GestionLotesPage() {
                      </div>
                      <div className="space-y-2">
                        <label className="text-sm font-bold text-slate-700">Modelo</label>
-                       <input type="text" required value={formData.modelo} onChange={e => setFormData({...formData, modelo: e.target.value.toUpperCase()})} placeholder="EJ: CT-100 ES/KS" className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none font-mono uppercase" />
+                       <input 
+                         type="text" 
+                         list="models-list"
+                         required 
+                         value={formData.modelo} 
+                         onChange={e => setFormData({...formData, modelo: e.target.value.toUpperCase()})} 
+                         placeholder="EJ: CT-100 ES/KS" 
+                         className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none font-mono uppercase" 
+                       />
+                       <datalist id="models-list">
+                         {Object.keys(MODEL_RULES).map(m => (
+                           <option key={m} value={m} />
+                         ))}
+                       </datalist>
                      </div>
                    </div>
 
@@ -272,11 +433,20 @@ export default function GestionLotesPage() {
 
                    <div className="border-t border-slate-200 pt-4">
                      <h3 className="text-sm font-bold text-slate-900 mb-4">Composición del Lote (Estibas por tipo)</h3>
-                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-                       {Object.keys(formData.composicion).map(tipo => (
+                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                       {['CHASIS', 'PLASTICO', 'MOTORES', 'TORNILERIA'].map(tipo => (
                          <div key={tipo} className="space-y-1">
                            <label className="text-xs font-bold text-slate-600">{tipo}</label>
-                           <input type="number" min="0" value={(formData.composicion as any)[tipo]} onChange={e => setFormData({...formData, composicion: { ...formData.composicion, [tipo]: parseInt(e.target.value) || 0 }})} className="w-full bg-slate-50 border-slate-200 rounded-xl px-3 py-2 text-center focus:ring-2 focus:ring-primary outline-none" />
+                           <input 
+                             type="number" 
+                             min="0" 
+                             value={(formData.composicion as any)[tipo]} 
+                             onChange={e => setFormData({
+                               ...formData, 
+                               composicion: { ...formData.composicion, [tipo]: parseInt(e.target.value) || 0 }
+                             })} 
+                             className="w-full bg-slate-50 border-slate-200 rounded-xl px-3 py-2 text-center focus:ring-2 focus:ring-primary outline-none" 
+                           />
                          </div>
                        ))}
                      </div>
@@ -290,51 +460,69 @@ export default function GestionLotesPage() {
                    </button>
                  </form>
               </div>
-           </div>
+            </div>
 
-           <div className="lg:col-span-1">
-              <div className={`rounded-2xl border p-6 h-full min-h-[400px] flex flex-col ${statusMap?.type === 'success' ? 'bg-emerald-50 border-emerald-200' : statusMap?.type === 'error' ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-dashed border-slate-300'}`}>
-                 {statusMap?.type === 'success' ? (
-                   <div className="flex-1 flex flex-col items-center justify-center text-center animate-in zoom-in-50 duration-300">
-                     <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4 shadow-xl shadow-emerald-500/20">
-                       <CheckCircle2 size={32} />
-                     </div>
-                     <h3 className="text-2xl font-black text-emerald-950 mb-2">¡{statusMap.data.recomendacion.totalAsignadas} Estibas Asignadas!</h3>
-                     <p className="text-emerald-700 font-medium text-sm mb-6">Diríjase a las ubicaciones. (Mostrando primera posición)</p>
-                     
-                     <div className="w-full bg-white rounded-xl border border-emerald-100 p-4 shadow-sm relative overflow-hidden">
-                       <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
-                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Posición Drive-in Asignada</p>
-                       <div className="flex justify-between items-baseline mb-4">
-                         <span className="text-3xl font-black text-slate-800">RACK {statusMap.data.recomendacion.rack}</span>
-                         <span className="text-lg font-bold text-slate-600">Nivel {statusMap.data.recomendacion.nivel}</span>
-                       </div>
-                       <div className="flex justify-between items-center text-sm font-bold border-t border-slate-100 pt-3">
-                         <span className="text-slate-500">Profundidad (Fondo):</span>
-                         <span className="text-emerald-600 bg-emerald-50 px-2 py-1 rounded">Posición {statusMap.data.recomendacion.profundidad}/10</span>
-                       </div>
-                     </div>
-                     
-                     <div className="mt-6 p-3 bg-white/60 border border-emerald-100 rounded-xl w-full">
-                       <p className="text-[10px] font-bold text-slate-400 uppercase text-left mb-1">Código de Barra Generado</p>
-                       <p className="font-mono font-bold text-slate-800 text-lg tracking-wider">{statusMap.data.recomendacion.estiba}</p>
-                     </div>
-                   </div>
-                 ) : statusMap?.type === 'error' ? (
-                   <div className="flex-1 flex flex-col items-center justify-center text-center">
-                     <AlertCircle size={48} className="text-red-500 mb-4" />
-                     <h3 className="text-xl font-black text-red-950 mb-2">Error de Ubicación</h3>
-                     <p className="text-red-700 font-medium text-sm">{statusMap.message}</p>
-                   </div>
-                 ) : (
-                   <div className="flex-1 flex flex-col items-center justify-center text-center opacity-50">
-                     <Maximize2 size={48} className="text-slate-400 mb-4" />
-                     <h3 className="text-lg font-bold text-slate-900 mb-2">Esperando Escaneo</h3>
-                     <p className="text-slate-500 text-sm max-w-[200px]">Complete el formulario para que el algoritmo asigne la ubicación óptima.</p>
-                   </div>
-                 )}
-              </div>
-           </div>
+            <div className="lg:col-span-1">
+               <div className={`rounded-2xl border p-6 h-full min-h-[400px] flex flex-col ${statusMap?.type === 'success' ? 'bg-emerald-50 border-emerald-200' : statusMap?.type === 'error' ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-dashed border-slate-300'}`}>
+                  {statusMap?.type === 'success' ? (
+                    <div className="flex-1 flex flex-col items-center justify-start text-center animate-in zoom-in-50 duration-300 overflow-y-auto max-h-[600px] scrollbar-hide">
+                      <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-3 shadow-lg shadow-emerald-500/10">
+                        <CheckCircle2 size={24} />
+                      </div>
+                      <h3 className="text-xl font-black text-emerald-950 mb-1">¡Estibas Asignadas!</h3>
+                      <p className="text-emerald-700 font-bold text-xs mb-4">
+                        Lote <span className="bg-emerald-200 px-1 rounded">({statusMap.data?.recomendacion?.loteInfo})</span> asignado con éxito en el <span className="font-black text-emerald-900">RACK {statusMap.data?.recomendacion?.rackPrincipal}</span>.
+                      </p>
+                      
+                      <div className="w-full bg-white rounded-xl border border-emerald-100 p-4 shadow-sm relative overflow-hidden mb-4">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 text-left">Ubicación Principal</p>
+                        <div className="flex justify-between items-baseline">
+                          <span className="text-2xl font-black text-slate-800">RACK {statusMap.data?.recomendacion?.rackPrincipal}</span>
+                          <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">{statusMap.data?.recomendacion?.totalAsignadas} Estibas</span>
+                        </div>
+                      </div>
+                      
+                      <div className="w-full space-y-2">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-left px-1">Detalle de Posiciones</p>
+                        {statusMap.data?.recomendacion?.ubicaciones?.map((item: any, idx: number) => (
+                          <div key={idx} className="flex items-center justify-between p-2 bg-white/60 border border-slate-100 rounded-lg text-[10px]">
+                            <div className="flex flex-col items-start">
+                              <span className="font-black text-slate-700">{item.pos}</span>
+                              <span className="text-[9px] text-slate-400">{item.tipo}</span>
+                            </div>
+                            <div className="text-right">
+                              <span className="font-mono font-bold text-slate-500 block">{item.code}</span>
+                              {item.rack !== statusMap.data?.recomendacion?.rackPrincipal && (
+                                <span className="text-[8px] font-black text-amber-600">RACK {item.rack}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <button 
+                        onClick={() => setStatusMap(null)}
+                        className="mt-6 w-full py-2 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-colors"
+                      >
+                        Registrar Siguiente Lote
+                      </button>
+                    </div>
+                  ) : statusMap?.type === 'error' ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center">
+                      <AlertCircle size={48} className="text-red-500 mb-4" />
+                      <h3 className="text-xl font-black text-red-950 mb-2">Error de Ubicación</h3>
+                      <p className="text-red-700 font-medium text-sm">{statusMap.message}</p>
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center opacity-50">
+                      <Maximize2 size={48} className="text-slate-400 mb-4" />
+                      <h3 className="text-lg font-bold text-slate-900 mb-2">Esperando Escaneo</h3>
+                      <p className="text-slate-500 text-sm max-w-[200px]">Complete el formulario para que el algoritmo asigne la ubicación óptima.</p>
+                    </div>
+                  )}
+               </div>
+            </div>
         </div>
       )}
 
@@ -450,9 +638,20 @@ export default function GestionLotesPage() {
                       <p className="text-xs text-slate-500 font-medium">Estibas físicas asociadas al lote {selectedLoteData?.lote} de la orden {selectedLoteData?.wo}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Referencia de Modelo</span>
-                    <p className="font-bold text-slate-900">{selectedLoteData?.modelo}</p>
+                  <div className="flex items-center gap-3">
+                    {(userRole?.toLowerCase() === "super admin" || userRole?.toLowerCase() === "super_admin") && (
+                      <button 
+                        onClick={() => handleUpdateDates(selectedLoteData?.wo)}
+                        className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-all text-xs font-bold"
+                      >
+                        <FileUp size={14} />
+                        Editar Fechas (WO)
+                      </button>
+                    )}
+                    <div className="text-right">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Referencia de Modelo</span>
+                      <p className="font-bold text-slate-900">{selectedLoteData?.modelo}</p>
+                    </div>
                   </div>
                </div>
                <div className="overflow-x-auto">

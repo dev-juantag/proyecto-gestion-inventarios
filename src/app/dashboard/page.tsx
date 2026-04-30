@@ -12,6 +12,7 @@ export default function DashboardOverview() {
   const [selectedRack, setSelectedRack] = useState<any>(null);
   const [selectedCanal, setSelectedCanal] = useState<any>(null);
   const [selectedUbiId, setSelectedUbiId] = useState<string | null>(null);
+  const [filterPrefix, setFilterPrefix] = useState("TODOS");
 
   const fetchStats = async () => {
     try {
@@ -29,8 +30,6 @@ export default function DashboardOverview() {
 
   useEffect(() => {
     fetchStats();
-    const interval = setInterval(fetchStats, 30000);
-    return () => clearInterval(interval);
   }, []);
 
   const openRackModal = (rackName: string) => {
@@ -86,8 +85,8 @@ export default function DashboardOverview() {
     <div className="space-y-8 relative">
       <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900">Inventario General (En Vivo)</h1>
-          <p className="font-medium text-slate-500">Bodega Central (Drive-in) | Sincronizado en tiempo real</p>
+          <h1 className="text-3xl font-black tracking-tight text-slate-900">Inventario General</h1>
+          <p className="font-medium text-slate-500">Grupo UMA Zona Franca</p>
         </div>
         <div className="flex gap-2">
           <button onClick={fetchStats} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold hover:bg-slate-50">
@@ -115,22 +114,33 @@ export default function DashboardOverview() {
           <div className="mb-4 flex items-start justify-between">
             <div className="rounded-lg bg-purple-500/10 p-2 text-purple-500"><BoxSelect size={24} /></div>
           </div>
-          <p className="mb-1 text-sm font-medium text-slate-500">Estibas / Pallets Físicos</p>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-black text-slate-900">{global?.totalEstibas || 0}</span>
-          </div>
-          <p className="mt-4 text-xs font-bold text-primary">Unidades alojadas en racks</p>
+          <p className="mb-1 text-sm font-medium text-slate-500">Gestión de Lotes</p>
+          <div className="flex items-end justify-between">
+            <div className="flex flex-col">
+              <span className="text-4xl font-black text-slate-900">{global?.totalLotes || 0}</span>
+              <span className="text-[10px] font-black uppercase text-primary">Lotes Registrados</span>
+            </div>
+          </div>  
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-start justify-between">
-            <div className="rounded-lg bg-amber-500/10 p-2 text-amber-500"><Tags size={24} /></div>
+            <div className="rounded-lg bg-amber-500/10 p-2 text-amber-500"><BoxSelect size={24} /></div>
           </div>
-          <p className="mb-1 text-sm font-medium text-slate-500">Total Embarques/Containers</p>
+          <p className="mb-1 text-sm font-medium text-slate-500">Posiciones Ocupadas</p>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-black text-slate-900">{global?.totalPaquetes || 0}</span>
+            <span className="text-4xl font-black text-slate-900">{global?.ocupadas || 0}</span>
+            <span className="text-sm font-bold text-slate-400">de {global?.totalUbicaciones || 0} disponibles</span>
           </div>
-          <p className="mt-4 text-xs font-bold text-amber-600">Lotes de motos distribuidos</p>
+          <div className="mt-4 flex items-center gap-3">
+             <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full transition-all duration-1000 ${Number(global?.porcentajeGlobal) > 90 ? 'bg-red-500' : 'bg-amber-500'}`}
+                  style={{ width: `${global?.porcentajeGlobal || 0}%` }}
+                ></div>
+             </div>
+             <span className="text-xs font-black text-slate-600">{global?.porcentajeGlobal || 0}%</span>
+          </div>
         </div>
       </div>
 
@@ -141,11 +151,33 @@ export default function DashboardOverview() {
                <h3 className="text-lg font-bold text-slate-900">Estado de Racks (Drive-in)</h3>
                <p className="text-xs font-medium text-slate-500 mt-1">Clic en un Rack para ver ocupación lateral</p>
              </div>
+
+             {/* Filtros por letra inicial */}
+             <div className="flex flex-wrap gap-2 bg-slate-100/50 p-1 rounded-xl border border-slate-200">
+               {(() => {
+                 const prefixes = ["TODOS", ...Array.from(new Set(racks?.map((r: any) => r.rack.charAt(0).toUpperCase()) || []))].sort();
+                 return prefixes.map((pref: any) => (
+                   <button
+                     key={pref}
+                     onClick={() => setFilterPrefix(pref)}
+                     className={`px-4 py-1.5 text-[10px] font-black rounded-lg transition-all uppercase tracking-wider ${
+                       filterPrefix === pref 
+                         ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-105' 
+                         : 'text-slate-500 hover:bg-slate-200 hover:text-slate-800'
+                     }`}
+                   >
+                     {pref}
+                   </button>
+                 ));
+               })()}
+             </div>
           </div>
           <div className="p-6 flex-1 bg-slate-50">
             {racks && racks.length > 0 ? (
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 {racks.map((r: any) => {
+                 {racks
+                   .filter((r: any) => filterPrefix === "TODOS" || r.rack.startsWith(filterPrefix))
+                   .map((r: any) => {
                     const pct = r.totalUbicaciones > 0 ? ((r.ocupadas / r.totalUbicaciones) * 100).toFixed(1) : "0";
                     return (
                       <div 
@@ -257,7 +289,10 @@ export default function DashboardOverview() {
                                        <button onClick={() => setSelectedUbiId(null)} className="p-1 hover:bg-white/10 rounded-lg transition-colors"><X size={16} /></button>
                                     </div>
                                     <h3 className="text-3xl font-black font-mono leading-none">{woTarget}</h3>
-                                    <p className="text-xs font-bold text-primary mt-2 uppercase">{ubiActual?.modelo}</p>
+                                    <div className="mt-2 flex items-center gap-2">
+                                       <span className="px-1.5 py-0.5 rounded bg-white/20 text-[8px] font-black text-white uppercase">Modelo</span>
+                                       <p className="text-xs font-bold text-white uppercase">{ubiActual?.modelo || 'NO ESPECIFICADO'}</p>
+                                    </div>
                                     
                                     <div className="mt-6 grid grid-cols-2 gap-4">
                                        <div className="p-3 bg-white/5 rounded-xl border border-white/10">
@@ -348,9 +383,9 @@ export default function DashboardOverview() {
                                              >
                                                 <span className={`text-[11px] font-black tracking-widest mb-1 ${ubi.vacio ? 'text-slate-300' : 'text-white/40'}`}>P{ubi.profundidad}</span>
                                                 {!ubi.vacio && (
-                                                   <div className="flex flex-col items-center text-center">
-                                                      <span className="text-[10px] font-black text-white leading-tight">{ubi.paquete}</span>
-                                                      <span className="text-[8px] font-bold text-white/70 uppercase mt-0.5">{ubi.tipo}</span>
+                                                   <div className="flex flex-col items-center text-center px-1">
+                                                      <span className="text-[9px] font-black text-white leading-tight">{ubi.paquete} {ubi.lote}</span>
+                                                      <span className="text-[7px] font-bold text-white/70 uppercase mt-0.5">{ubi.tipo}</span>
                                                    </div>
                                                 )}
                                                 {isFocused && <div className="absolute top-1 right-1 w-2 h-2 bg-white rounded-full animate-ping"></div>}

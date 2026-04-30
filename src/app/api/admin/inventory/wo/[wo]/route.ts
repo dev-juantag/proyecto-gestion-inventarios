@@ -66,3 +66,31 @@ export async function DELETE(
     return NextResponse.json({ error: "Error interno al intentar eliminar la WO" }, { status: 500 });
   }
 }
+
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ wo: string }> }
+) {
+  const user = await requireSuperAdmin();
+  if (!user) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  }
+
+  const { wo } = await params;
+  const { fechaProduccion, fechaIntervencion } = await req.json();
+
+  try {
+    await (prisma as any).lote.updateMany({
+      where: { wo: wo },
+      data: {
+        ...(fechaProduccion && { fechaProduccion: new Date(fechaProduccion) }),
+        ...(fechaIntervencion && { fechaIntervencion: new Date(fechaIntervencion) }),
+      }
+    });
+
+    return NextResponse.json({ success: true, message: "Fechas actualizadas correctamente" });
+  } catch (error) {
+    return NextResponse.json({ error: "Error al actualizar fechas" }, { status: 500 });
+  }
+}
+
